@@ -1,1 +1,184 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Змейка</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #222;
+            margin: 0;
+        }
+        canvas {
+            border: 5px solid white;
+            background-color: black;
+            touch-action: none;
+            display: none;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: lime;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <button id="startButton">Начать игру</button>
 
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const startButton = document.getElementById("startButton");
+
+        const gridSize = 20;
+        let snake, direction, food, changingDirection, gameRunning;
+
+        function resetGame() {
+            snake = [{ x: 200, y: 200 }];
+            direction = "RIGHT";
+            changingDirection = false;
+            gameRunning = true;
+            placeFood();
+            canvas.style.display = "block";
+            startButton.style.display = "none";
+
+            console.log("Игра началась. Начальная позиция змейки:", snake);
+            console.log("Начальная позиция еды:", food);
+
+            gameLoop();
+        }
+
+        startButton.addEventListener("click", resetGame);
+
+        document.addEventListener("keydown", (event) => {
+            changeDirection(event.key);
+        });
+
+        let touchStartX = 0, touchStartY = 0;
+
+        canvas.addEventListener("touchstart", (event) => {
+            const touch = event.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+        });
+
+        canvas.addEventListener("touchend", (event) => {
+            const touch = event.changedTouches[0];
+            const deltaX = touch.clientX - touchStartX;
+            const deltaY = touch.clientY - touchStartY;
+
+            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                if (deltaX > 0) changeDirection("ArrowRight");
+                else changeDirection("ArrowLeft");
+            } else {
+                if (deltaY > 0) changeDirection("ArrowDown");
+                else changeDirection("ArrowUp");
+            }
+        });
+
+        function changeDirection(key) {
+            if (changingDirection) return;
+            changingDirection = true;
+
+            if ((key === "ArrowUp" || key === "w") && direction !== "DOWN") {
+                direction = "UP";
+            } else if ((key === "ArrowDown" || key === "s") && direction !== "UP") {
+                direction = "DOWN";
+            } else if ((key === "ArrowLeft" || key === "a") && direction !== "RIGHT") {
+                direction = "LEFT";
+            } else if ((key === "ArrowRight" || key === "d") && direction !== "LEFT") {
+                direction = "RIGHT";
+            }
+        }
+
+        function drawSnake() {
+            ctx.fillStyle = "lime";
+            snake.forEach((segment) => {
+                ctx.fillRect(segment.x, segment.y, gridSize, gridSize);
+            });
+        }
+
+        function moveSnake() {
+            const head = { ...snake[0] };
+
+            if (direction === "UP") head.y -= gridSize;
+            if (direction === "DOWN") head.y += gridSize;
+            if (direction === "LEFT") head.x -= gridSize;
+            if (direction === "RIGHT") head.x += gridSize;
+
+            snake.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                placeFood();
+            } else {
+                snake.pop();
+            }
+        }
+
+        function placeFood() {
+            let validPosition = false;
+            while (!validPosition) {
+                food = {
+                    x: Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize,
+                    y: Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize
+                };
+                
+                validPosition = !snake.some(segment => segment.x === food.x && segment.y === food.y);
+            }
+        }
+
+        function drawFood() {
+            ctx.fillStyle = "red";
+            ctx.fillRect(food.x, food.y, gridSize, gridSize);
+        }
+
+        function checkCollision() {
+            const head = snake[0];
+
+            if (
+                head.x < 0 || head.x >= canvas.width ||
+                head.y < 0 || head.y >= canvas.height
+            ) {
+                gameRunning = false;
+                return;
+            }
+
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    gameRunning = false;
+                    return;
+                }
+            }
+        }
+
+        function gameLoop() {
+            if (!gameRunning) {
+                setTimeout(() => {
+                    alert("Игра окончена!");
+                    startButton.style.display = "block";
+                    canvas.style.display = "none";
+                }, 100);
+                return;
+            }
+
+            changingDirection = false;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawFood();
+            moveSnake();
+            drawSnake();
+            checkCollision();
+
+            setTimeout(gameLoop, 200);
+        }
+    </script>
+</body>
+</html>
